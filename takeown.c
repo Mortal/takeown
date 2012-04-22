@@ -150,17 +150,13 @@ char * ensure_jail(const char * filename, const char * jail) {
 	}
 }
 
-int takeown(const char * filename) {
-	int result = 0;
+void takeown(const char * filename) {
 	struct stat statbuf;
 	FILE * fd = fopen(filename, "r");
 	if (fd == NULL) {
 		warn("Could not open %s for reading", filename);
-		if (errno != ENOENT)
-			result = 1;
-		goto out1;
+		return;
 	}
-	result = 1;
 	if (-1 == fstat(fileno(fd), &statbuf)) {
 		warn("Could not stat %s", filename);
 		goto out2;
@@ -204,8 +200,6 @@ out3:
 	free(tmppath);
 out2:
 	fclose(fd);
-out1:
-	return result;
 }
 
 void usage(const char * progname) {
@@ -251,7 +245,6 @@ int main(int argc, char ** argv) {
 #endif // TAKEOWN_GID
 
 	mode_t oldmask = umask(TAKEOWN_UMASK);
-	int successes = 0;
 	while (i < argc) {
 #ifdef TAKEOWN_ACTUAL_JAIL
 		char * filename = ensure_jail(argv[i], TAKEOWN_ACTUAL_JAIL);
@@ -262,14 +255,10 @@ int main(int argc, char ** argv) {
 #else
 		char * filename = strdup(argv[i]);
 #endif
-		successes += takeown(filename);
+		takeown(filename);
 		free(filename);
 		++i;
 	}
 	umask(oldmask);
-	if (!successes) {
-		usage(argv[0]);
-		return 1;
-	}
 	return 0;
 }
